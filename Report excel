@@ -1,0 +1,76 @@
+xl_tmp blob := empty_blob(); —Шаблон
+xl_out blob := empty_blob(); —Выходящий файл
+i integer := 1; —Счетчик
+
+begin
+
+xl_tmp := &lib_ooxml.xl_init(&METHODS$NAME); —Загружам шаблон
+
+if &xl.open_file(xl_tmp) then — Если проблем не возникло заполняем
+
+—Выборка по кредитам
+for(Select x(x.[COUSE_ARR].[CAUSE].[DISCRIPTON] : descript
+,x.COUSE_ARR].[CAUSE].[NAME] : name
+,x.[DATE_BEG] : date_beg
+,x.[COMMENT] : comment
+,cred.[NUM_DOG] num_dog
+,cred.[FILIAL] .[CODE]: filial
+,cred.[CLIENT] : client
+,cred.[PRJ_KIND_CRED].[NAME] : vid_kredit
+in ::[REJECT_DEBT],
+(::[KREDIT] all : cred) all
+Where x.[DATE_BEG] >= P_START_DATE and (x.[DATE_BEG] <= P_DATE_END or P_DATE_END is null)
+and cred.[CAUSE] = x%collection
+and (cred.[FILIAL] = P_FILIAL or P_FILIAL is null)
+
+union all
+
+—Выборка по гарантиям
+Select x(x.[COUSE_ARR].[CAUSE].[DISCRIPTON] : descript
+,x.COUSE_ARR].[CAUSE].[NAME] : name
+,x.[DATE_BEG] : date_beg
+,x.[COMMENT] : comment
+,guar.[NUM_DOG] num_dog
+,guar.[FILIAL].[CODE] : filial
+,guar.[PRINCIPAL] : client
+,guar.[KIND_CREDIT].[NAME] : vid_kredit
+in ::[REJECT_DEBT],
+(::[GUARANTIES] all : guar) all
+Where x.[DATE_BEG] >= P_START_DATE and (x.[DATE_BEG] <= P_DATE_END or P_DATE_END is null)
+and guar.[CAUSE] = x%collection
+and (guar.[FILIAL] = P_FILIAL or P_FILIAL is null)
+
+union all
+
+—Выборка по обеспечению
+Select x(x.[COUSE_ARR].[CAUSE].[DISCRIPTON] : descript
+,x.COUSE_ARR].[CAUSE].[NAME] : name
+,x.[DATE_BEG] : date_beg
+,x.[COMMENT] : comment
+,zal.[NUM_DOG] num_dog
+,zal.[FILIAL].[CODE] : filial
+,zal.[USER_ZALOG] : client
+,zal.[VID_GUARANTIES].[NAME] : vid_kredit
+in ::[REJECT_DEBT],
+(::[OBESPECHENIE] all : zal) all
+Where x.[DATE_BEG] >= P_START_DATE and (x.[DATE_BEG] <= P_DATE_END or P_DATE_END is null)
+and zal.[CAUSE] = x%collection
+and (zal.[FILIAL] = P_FILIAL or P_FILIAL is null)
+)
+loop
+
+&xl.put(i, 1, i);
+&xl.put(i, 2, x.filial);
+&xl.put(i, 3, x.num_dog);
+&xl.put(i, 4, x.client);
+&xl.put(i, 5, x.vid_kredit);
+&xl.put(i, 6, x.date_beg);
+&xl.put(i, 7, x.name);
+&xl.put(i, 8, x.descript);
+&xl.put(i, 9, x.comment);
+
+end loop;
+
+&xl.finish(xl_out);
+orsa.putReport2RunExtProc(xl_out, 'xslx', reject_debt);
+end;
